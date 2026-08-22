@@ -1,0 +1,14 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    secret: test-secret-key-for-junit-tests-only-not-for-production-use
+  mail:
+    enabled: false
+  google:
+    enabled: false

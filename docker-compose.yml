@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ticketease-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-ticketease}
+      POSTGRES_USER: ${DATABASE_USERNAME:-ticketease}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-ticketease}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ticketease_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-ticketease}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: ticketease-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${DATABASE_NAME:-ticketease}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-ticketease}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-ticketease}
+      JWT_SECRET: ${JWT_SECRET:-change-this-super-secret-key-in-production-min-256-bits}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@ticketease.demo}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/calendar/oauth/callback}
+      GOOGLE_CALENDAR_ENABLED: ${GOOGLE_CALENDAR_ENABLED:-false}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      PAYMENT_MODE: ${PAYMENT_MODE:-mock}
+      QR_SECRET: ${QR_SECRET:-change-this-qr-signing-secret}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: ticketease-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  ticketease_postgres_data:

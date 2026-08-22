@@ -1,0 +1,253 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  OPERATOR
+}
+
+enum VenueType {
+  MOVIE_THEATRE
+  CONCERT_HALL
+  ARENA
+  AUDITORIUM
+}
+
+enum SeatType {
+  REGULAR
+  PREMIUM
+  VIP
+}
+
+enum EventType {
+  MOVIE
+  CONCERT
+}
+
+enum EventStatus {
+  ACTIVE
+  UPCOMING
+  DRAFT
+  ARCHIVED
+}
+
+enum ShowStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum SeatStatus {
+  AVAILABLE
+  HELD
+  BOOKED
+  BLOCKED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  CANCELLED
+}
+
+enum WaitlistStatus {
+  WAITING
+  OFFERED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+model User {
+  id              String          @id @default(uuid())
+  name            String
+  email           String          @unique
+  phone           String?
+  passwordHash    String
+  role            Role            @default(CUSTOMER)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  bookings        Booking[]
+  waitlistEntries WaitlistEntry[]
+  heldSeats       ShowSeat[]
+}
+
+model Venue {
+  id          String      @id @default(uuid())
+  name        String
+  location    String
+  address     String
+  city        String
+  capacity    Int
+  type        VenueType   @default(MOVIE_THEATRE)
+  imageUrl    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  screens     Screen[]
+}
+
+model Screen {
+  id          String      @id @default(uuid())
+  venueId     String
+  venue       Venue       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name        String
+  rows        Int
+  columns     Int
+  capacity    Int
+
+  seats       Seat[]
+  shows       Show[]
+}
+
+model Seat {
+  id              String      @id @default(uuid())
+  screenId        String
+  screen          Screen      @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  rowLabel        String
+  seatNumber      Int
+  seatType        SeatType    @default(REGULAR)
+  priceMultiplier Float       @default(1.0)
+
+  showSeats       ShowSeat[]
+
+  @@unique([screenId, rowLabel, seatNumber])
+}
+
+model Event {
+  id           String       @id @default(uuid())
+  title        String
+  description  String
+  type         EventType    @default(MOVIE)
+  language     String       @default("English")
+  duration     Int          // minutes
+  posterUrl    String
+  backdropUrl  String?
+  category     String       // e.g. Action, Thriller, Pop, Rock
+  castOrArtist String?
+  status       EventStatus  @default(ACTIVE)
+  rating       Float?       @default(4.8)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  shows        Show[]
+}
+
+model Show {
+  id              String          @id @default(uuid())
+  eventId         String
+  event           Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  screenId        String
+  screen          Screen          @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  startTime       DateTime
+  endTime         DateTime
+  basePrice       Float
+  status          ShowStatus      @default(SCHEDULED)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  showSeats       ShowSeat[]
+  bookings        Booking[]
+  waitlistEntries WaitlistEntry[]
+}
+
+model ShowSeat {
+  id            String         @id @default(uuid())
+  showId        String
+  show          Show           @relation(fields: [showId], references: [id], onDelete: Cascade)
+  seatId        String
+  seat          Seat           @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  status        SeatStatus     @default(AVAILABLE)
+  holdToken     String?
+  holdExpiresAt DateTime?
+  heldByUserId  String?
+  heldByUser    User?          @relation(fields: [heldByUserId], references: [id], onDelete: SetNull)
+  bookingId     String?
+  booking       Booking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  bookingSeats  BookingSeat[]
+
+  @@unique([showId, seatId])
+  @@index([showId, status])
+  @@index([holdToken])
+}
+
+model Booking {
+  id               String         @id @default(uuid())
+  bookingReference String         @unique // e.g. TE-2026-ABC123
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  showId           String
+  show             Show           @relation(fields: [showId], references: [id], onDelete: Cascade)
+  subtotal         Float
+  convenienceFee   Float          @default(30.0)
+  totalAmount      Float
+  status           BookingStatus  @default(CONFIRMED)
+  paymentStatus    PaymentStatus  @default(SUCCESS)
+  paymentMethod    String?        // UPI, CARD, NET_BANKING
+  paymentId        String?
+  qrCodeData       String?
+  ticketStatus     TicketStatus   @default(VALID)
+  usedAt           DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  bookingSeats     BookingSeat[]
+  showSeats        ShowSeat[]
+
+  @@index([userId])
+  @@index([showId])
+}
+
+model BookingSeat {
+  id         String   @id @default(uuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  showSeatId String
+  showSeat   ShowSeat @relation(fields: [showSeatId], references: [id], onDelete: Cascade)
+  price      Float
+
+  @@unique([bookingId, showSeatId])
+}
+
+model WaitlistEntry {
+  id             String         @id @default(uuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  showId         String
+  show           Show           @relation(fields: [showId], references: [id], onDelete: Cascade)
+  requestedSeats Int            @default(1)
+  status         WaitlistStatus @default(WAITING)
+  offerExpiresAt DateTime?
+  offeredSeatIds String?        // JSON stringified array of ShowSeat IDs
+  allocatedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([showId, status, createdAt])
+  @@index([userId])
+}
