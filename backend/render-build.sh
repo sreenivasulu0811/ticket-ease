@@ -2,7 +2,7 @@
 # Exit on error
 set -o errexit
 
-npm install
+npm install --include=dev
 npx prisma generate
 npx prisma db push --accept-data-loss
 npm run prisma:seed
