@@ -23,11 +23,12 @@ export const config = {
 
   mail: {
     enabled: process.env.MAIL_ENABLED === 'true',
-    host: process.env.MAIL_HOST || 'smtp.example.com',
-    port: parseInt(process.env.MAIL_PORT || '587', 10),
+    service: process.env.MAIL_SERVICE || (process.env.MAIL_HOST?.includes('gmail') ? 'gmail' : undefined),
+    host: process.env.MAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.MAIL_PORT || '465', 10),
     user: process.env.MAIL_USERNAME || '',
     pass: process.env.MAIL_PASSWORD || '',
-    from: process.env.MAIL_FROM || 'no-reply@ticketease.demo',
+    from: process.env.MAIL_FROM || process.env.MAIL_USERNAME || 'no-reply@ticketease.demo',
   },
 
   businessRules: {

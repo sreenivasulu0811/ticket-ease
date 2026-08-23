@@ -4,18 +4,40 @@ import { logger } from '../utils/logger.js';
 
 export const emailService = {
   getTransporter() {
-    if (config.mail.enabled && config.mail.host && config.mail.user) {
+    if (!config.mail.enabled || !config.mail.user || !config.mail.pass) {
+      return null;
+    }
+
+    // Native Gmail integration (bypasses port/firewall issues)
+    if (config.mail.service === 'gmail' || config.mail.host?.includes('gmail')) {
       return nodemailer.createTransport({
-        host: config.mail.host,
-        port: config.mail.port,
-        secure: config.mail.port === 465,
+        service: 'gmail',
         auth: {
           user: config.mail.user,
           pass: config.mail.pass,
         },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
       });
     }
-    return null;
+
+    // Generic SMTP integration
+    return nodemailer.createTransport({
+      host: config.mail.host,
+      port: config.mail.port,
+      secure: config.mail.port === 465,
+      auth: {
+        user: config.mail.user,
+        pass: config.mail.pass,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+    });
   },
 
   async sendBookingConfirmation(booking: {
@@ -104,8 +126,8 @@ export const emailService = {
           html,
         });
         logger.info(`[Email Service] Sent confirmation email to ${booking.user.email} for ${booking.bookingReference}`);
-      } catch (err) {
-        logger.error(`[Email Service] Failed to send email to ${booking.user.email}:`, err);
+      } catch (err: any) {
+        logger.error(`[Email Service] Failed to send confirmation email to ${booking.user.email}: ${err.message}`);
       }
     } else {
       // Dev mode logger
@@ -154,8 +176,9 @@ export const emailService = {
           subject: `Booking Cancelled & Refund Processed [${booking.bookingReference}]`,
           html,
         });
-      } catch (err) {
-        logger.error(`[Email Service] Failed to send cancellation email:`, err);
+        logger.info(`[Email Service] Sent cancellation email to ${booking.user.email}`);
+      } catch (err: any) {
+        logger.error(`[Email Service] Failed to send cancellation email: ${err.message}`);
       }
     } else {
       logger.info(`\n================== [DEV EMAIL SERVICE - CANCELLATION] ==================\n` +
@@ -201,8 +224,9 @@ export const emailService = {
           subject: `🌟 Seats Available! Confirm your TicketEase Waitlist Offer for ${offer.eventTitle}`,
           html,
         });
-      } catch (err) {
-        logger.error(`[Email Service] Failed to send waitlist email:`, err);
+        logger.info(`[Email Service] Sent waitlist offer email to ${offer.userEmail}`);
+      } catch (err: any) {
+        logger.error(`[Email Service] Failed to send waitlist email: ${err.message}`);
       }
     } else {
       logger.info(`\n================== [DEV EMAIL SERVICE - WAITLIST OFFER] ==================\n` +
