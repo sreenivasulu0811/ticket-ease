@@ -1,4 +1,4 @@
-# TicketEase — Smart Movie &amp; Concert Ticket Booking Platform
+# TicketEase — Smart Movie & Concert Ticket Booking Platform
 
 > **Production-grade full-stack ticket booking platform** featuring real-time interactive seat selection, concurrency-safe 5-minute seat holding, automatic hold expiration, simulated multi-method payments, tamper-proof digital QR-coded admission tickets, email notifications, automated FIFO waitlist seat reallocation upon cancellation, gate admission QR validation, and an executive administration dashboard.
 
@@ -40,22 +40,22 @@ Built with **React 18, Vite, TypeScript, Tailwind CSS, Node.js, Express, and Pos
 
 ---
 
-## 4. Architecture &amp; System Design
+## 4. Architecture & System Design
 
 ```mermaid
-graph TD
+flowchart TD
     Client["Frontend SPA (React 18 + Vite + Tailwind)"]
     API["Backend REST API (Node.js + Express + TypeScript)"]
-    DB[("PostgreSQL Database (Prisma ORM)")]
-    Worker["Background Worker (Hold & Waitlist Cleanup Scheduler)"]
-    QR["QR Signing & Validation Engine"]
+    DB[("PostgreSQL Database")]
+    Worker["Background Worker (Hold Cleanup)"]
+    QR["QR Validation Engine"]
     Mail["Email Notification Service"]
 
-    Client -->|REST API + JWT Bearer| API
-    API -->|ACID Transactions & Locking| DB
-    Worker -->|Periodic Expiry Scan (30s)| DB
-    API -->|Generate Signed QR| QR
-    API -->|HTML Confirmations| Mail
+    Client -->|"REST API + JWT Bearer"| API
+    API -->|"ACID Transactions & Locking"| DB
+    Worker -->|"Periodic Expiry Scan (30s)"| DB
+    API -->|"Generate Signed QR"| QR
+    API -->|"HTML Confirmations"| Mail
 ```
 
 ### Double-Booking Prevention Mechanism
