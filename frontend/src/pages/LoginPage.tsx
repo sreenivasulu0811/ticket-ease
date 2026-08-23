@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Ticket, Lock, Mail, ArrowRight, ShieldCheck, User, AlertCircle } from 'lucide-react';
+import { Ticket, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -34,18 +34,12 @@ export default function LoginPage() {
         err.response?.data?.message ||
         (err.code === 'ERR_NETWORK'
           ? 'Network Error: Cannot reach backend server. Please check your backend URL or wait for it to wake up.'
-          : err.message || 'Failed to sign in. Please verify your credentials.');
+          : err.message || 'Invalid email or password.');
       setErrorMessage(msg);
       toast.error(msg);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleQuickLogin = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('Demo@Password123');
-    setErrorMessage(null);
   };
 
   return (
@@ -117,7 +111,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2 mt-2"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -129,32 +123,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Fill Buttons */}
-          <div className="pt-4 border-t border-slate-800 space-y-3">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block text-center">
-              Quick Test Credentials
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin@ticketease.demo')}
-                className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Admin Demo
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('customer@ticketease.demo')}
-                className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold hover:text-white hover:bg-slate-700 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <User className="w-3.5 h-3.5 text-brand-400" />
-                Customer Demo
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

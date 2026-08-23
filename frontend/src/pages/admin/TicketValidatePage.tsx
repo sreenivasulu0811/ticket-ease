@@ -126,20 +126,6 @@ export default function TicketValidatePage() {
               </button>
             </div>
           </form>
-
-          {/* Quick Demo Test Buttons */}
-          <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-slate-500 text-[11px] font-semibold">Test Sample Ref:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setCode('TE-2026-DEMO01');
-              }}
-              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 font-mono text-brand-300"
-            >
-              TE-2026-DEMO01
-            </button>
-          </div>
         </div>
 
         {/* Validation Result Box */}
