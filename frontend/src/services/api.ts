@@ -11,7 +11,14 @@ import {
   AnalyticsData,
 } from '../types';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+// Normalize base URL: ensure no trailing slash, and ensure /api path exists
+let rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api').trim();
+rawBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+if (!rawBaseUrl.endsWith('/api') && !rawBaseUrl.includes('/api/')) {
+  rawBaseUrl = `${rawBaseUrl}/api`;
+}
+
+export const API_BASE_URL = rawBaseUrl;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -36,57 +43,67 @@ export interface ApiResponse<T> {
 
 // ----------------- AUTH APIS -----------------
 export const authApi = {
-  register: (data: any) => api.post<ApiResponse<{ user: AuthUser; accessToken: string; refreshToken: string }>>('/auth/register', data),
-  login: (data: any) => api.post<ApiResponse<{ user: AuthUser; accessToken: string; refreshToken: string }>>('/auth/login', data),
-  logout: () => api.post('/auth/logout'),
+  register: (data: any) =>
+    api.post<ApiResponse<{ user: AuthUser; accessToken: string; refreshToken: string }>>(
+      '/auth/register',
+      data
+    ),
+  login: (data: any) =>
+    api.post<ApiResponse<{ user: AuthUser; accessToken: string; refreshToken: string }>>(
+      '/auth/login',
+      data
+    ),
   getMe: () => api.get<ApiResponse<AuthUser>>('/auth/me'),
+  logout: () => api.post<ApiResponse<null>>('/auth/logout'),
 };
 
-// ----------------- EVENTS APIS -----------------
+// ----------------- EVENT APIS -----------------
 export const eventsApi = {
   getAll: (params?: any) => api.get<ApiResponse<Event[]>>('/events', { params }),
   getFeatured: () => api.get<ApiResponse<Event[]>>('/events/featured'),
   getById: (id: string) => api.get<ApiResponse<Event>>(`/events/${id}`),
   create: (data: any) => api.post<ApiResponse<Event>>('/events', data),
   update: (id: string, data: any) => api.put<ApiResponse<Event>>(`/events/${id}`, data),
-  delete: (id: string) => api.delete(`/events/${id}`),
+  delete: (id: string) => api.delete<ApiResponse<null>>(`/events/${id}`),
 };
 
-// ----------------- VENUES APIS -----------------
+// ----------------- VENUE & SCREEN APIS -----------------
 export const venuesApi = {
   getAll: () => api.get<ApiResponse<Venue[]>>('/venues'),
-  getById: (id: string) => api.get<ApiResponse<Venue>>(`/venues/${id}`),
   create: (data: any) => api.post<ApiResponse<Venue>>('/venues', data),
-  update: (id: string, data: any) => api.put<ApiResponse<Venue>>(`/venues/${id}`, data),
-  delete: (id: string) => api.delete(`/venues/${id}`),
-  createScreen: (venueId: string, data: any) => api.post(`/venues/${venueId}/screens`, data),
+  createScreen: (venueId: string, data: any) =>
+    api.post<ApiResponse<any>>(`/venues/${venueId}/screens`, data),
 };
 
-// ----------------- SHOWS APIS -----------------
+// ----------------- SHOW APIS -----------------
 export const showsApi = {
   getAll: (params?: any) => api.get<ApiResponse<Show[]>>('/shows', { params }),
   getById: (id: string) => api.get<ApiResponse<Show>>(`/shows/${id}`),
   create: (data: any) => api.post<ApiResponse<Show>>('/shows', data),
-  update: (id: string, data: any) => api.put<ApiResponse<Show>>(`/shows/${id}`, data),
-  delete: (id: string) => api.delete(`/shows/${id}`),
+  delete: (id: string) => api.delete<ApiResponse<null>>(`/shows/${id}`),
 };
 
-// ----------------- SEATS & HOLDS APIS -----------------
+// ----------------- SEAT & HOLD APIS -----------------
 export const seatsApi = {
   getShowSeats: (showId: string, holdToken?: string) =>
     api.get<ApiResponse<ShowSeatMap>>(`/shows/${showId}/seats`, {
-      params: holdToken ? { holdToken } : undefined,
+      params: { holdToken },
     }),
   holdSeats: (showId: string, seatIds: string[]) =>
-    api.post<ApiResponse<{
-      holdToken: string;
-      holdExpiresAt: string;
-      expiresInSeconds: number;
-      seats: any[];
-      pricing: { subtotal: number; convenienceFee: number; totalAmount: number };
-    }>>(`/shows/${showId}/hold`, { seatIds }),
+    api.post<
+      ApiResponse<{
+        holdToken: string;
+        holdExpiresAt: string;
+        pricing: {
+          subtotal: number;
+          convenienceFee: number;
+          totalAmount: number;
+          seatCount: number;
+        };
+      }>
+    >(`/shows/${showId}/hold`, { seatIds }),
   releaseHold: (showId: string, holdToken: string) =>
-    api.post(`/shows/${showId}/release`, { holdToken }),
+    api.post<ApiResponse<{ releasedCount: number }>>(`/shows/${showId}/release`, { holdToken }),
 };
 
 // ----------------- BOOKING APIS -----------------
@@ -100,7 +117,7 @@ export const bookingsApi = {
   }) => api.post<ApiResponse<Booking>>('/bookings', data),
   getMyBookings: () => api.get<ApiResponse<Booking[]>>('/bookings/my'),
   getById: (id: string) => api.get<ApiResponse<Booking>>(`/bookings/${id}`),
-  cancel: (id: string) => api.post<ApiResponse<{ refundAmount: number; message: string }>>(`/bookings/${id}/cancel`),
+  cancel: (id: string) => api.post<ApiResponse<{ refundAmount: number }>>(`/bookings/${id}/cancel`),
 };
 
 // ----------------- WAITLIST APIS -----------------
@@ -108,16 +125,15 @@ export const waitlistApi = {
   join: (data: { showId: string; requestedSeats: number }) =>
     api.post<ApiResponse<WaitlistEntry>>('/waitlist', data),
   getMyWaitlist: () => api.get<ApiResponse<WaitlistEntry[]>>('/waitlist/my'),
-  declineOffer: (id: string) => api.post(`/waitlist/${id}/decline`),
+  declineOffer: (id: string) => api.post<ApiResponse<null>>(`/waitlist/${id}/decline`),
 };
 
 // ----------------- TICKET VALIDATION APIS -----------------
 export const ticketsApi = {
-  validate: (code: string) =>
-    api.post<ApiResponse<Booking>>('/tickets/validate', { code }),
+  validate: (code: string) => api.post<ApiResponse<Booking>>('/tickets/validate', { code }),
 };
 
-// ----------------- ADMIN APIS -----------------
+// ----------------- ADMIN DASHBOARD APIS -----------------
 export const adminApi = {
   getStats: () => api.get<ApiResponse<DashboardStats>>('/admin/stats'),
   getReports: () => api.get<ApiResponse<AnalyticsData>>('/admin/reports'),

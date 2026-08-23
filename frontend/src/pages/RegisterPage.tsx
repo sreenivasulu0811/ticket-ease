@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Ticket, Lock, Mail, User, Phone, ArrowRight } from 'lucide-react';
+import { Ticket, Lock, Mail, User, Phone, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -11,12 +11,14 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
 
     if (password !== confirmPassword) {
       toast.error('Passwords do not match.');
@@ -34,7 +36,12 @@ export default function RegisterPage() {
       toast.success('Registration successful! Welcome to TicketEase.');
       navigate('/');
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to register account.';
+      const msg =
+        err.response?.data?.message ||
+        (err.code === 'ERR_NETWORK'
+          ? 'Network Error: Cannot reach backend server. Please check your backend URL or wait for it to wake up.'
+          : err.message || 'Failed to register account.');
+      setErrorMessage(msg);
       toast.error(msg);
     } finally {
       setIsLoading(false);
@@ -65,6 +72,13 @@ export default function RegisterPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-slate-900 border border-slate-800 py-8 px-6 sm:px-10 rounded-3xl shadow-2xl space-y-4">
+          {errorMessage && (
+            <div className="p-3.5 rounded-2xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <span className="leading-relaxed">{errorMessage}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-xs font-semibold text-slate-300 block mb-1">

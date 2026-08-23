@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Ticket, Lock, Mail, ArrowRight, ShieldCheck, User } from 'lucide-react';
+import { Ticket, Lock, Mail, ArrowRight, ShieldCheck, User, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     if (!email || !password) {
       toast.error('Please enter your email and password.');
       return;
@@ -28,7 +30,12 @@ export default function LoginPage() {
       toast.success('Welcome back!');
       navigate(from, { replace: true });
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Invalid email or password.';
+      const msg =
+        err.response?.data?.message ||
+        (err.code === 'ERR_NETWORK'
+          ? 'Network Error: Cannot reach backend server. Please check your backend URL or wait for it to wake up.'
+          : err.message || 'Failed to sign in. Please verify your credentials.');
+      setErrorMessage(msg);
       toast.error(msg);
     } finally {
       setIsLoading(false);
@@ -38,6 +45,7 @@ export default function LoginPage() {
   const handleQuickLogin = (demoEmail: string) => {
     setEmail(demoEmail);
     setPassword('Demo@Password123');
+    setErrorMessage(null);
   };
 
   return (
@@ -64,6 +72,13 @@ export default function LoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-slate-900 border border-slate-800 py-8 px-6 sm:px-10 rounded-3xl shadow-2xl space-y-6">
+          {errorMessage && (
+            <div className="p-3.5 rounded-2xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <span className="leading-relaxed">{errorMessage}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-xs font-semibold text-slate-300 block mb-1.5">
