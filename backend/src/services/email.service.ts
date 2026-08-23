@@ -89,7 +89,7 @@ export const emailService = {
           </div>
         </div>
         <div style="background-color: #f1f5f9; padding: 16px; text-align: center; color: #64748b; font-size: 12px;">
-          TicketEase Smart Ticket Booking Platform &bull; Need help? Contact support@ticketease.demo
+          TicketEase Smart Ticket Booking Platform &bull; Digital Admission Voucher
         </div>
       </div>
     `;
@@ -127,12 +127,43 @@ export const emailService = {
     user: { name: string; email: string };
     eventTitle: string;
   }) {
-    logger.info(`\n================== [DEV EMAIL SERVICE - CANCELLATION] ==================\n` +
-      `To: ${booking.user.email}\n` +
-      `Subject: Booking Cancelled & Refund Processed [${booking.bookingReference}]\n` +
-      `Hi ${booking.user.name}, your booking for ${booking.eventTitle} (${booking.bookingReference}) has been cancelled.\n` +
-      `Simulated refund of ₹${booking.refundAmount} has been processed to your original payment method.\n` +
-      `========================================================================\n`);
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #dc2626, #ef4444); padding: 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: bold;">TicketEase</h1>
+          <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">Booking Cancellation & Refund</p>
+        </div>
+        <div style="padding: 24px;">
+          <h2 style="color: #1e293b; margin-top: 0; font-size: 20px;">Hi ${booking.user.name},</h2>
+          <p style="color: #64748b; font-size: 15px; line-height: 1.5;">Your booking for <strong>${booking.eventTitle}</strong> (Ref: <code style="color: #dc2626;">${booking.bookingReference}</code>) has been cancelled.</p>
+          <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <div style="font-size: 12px; text-transform: uppercase; color: #991b1b; font-weight: bold;">Refund Processed</div>
+            <div style="font-size: 22px; font-weight: bold; color: #dc2626;">₹${booking.refundAmount.toFixed(2)}</div>
+            <p style="font-size: 12px; color: #7f1d1d; margin: 4px 0 0 0;">Credited to your original payment method.</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const transporter = this.getTransporter();
+    if (transporter) {
+      try {
+        await transporter.sendMail({
+          from: `"TicketEase" <${config.mail.from}>`,
+          to: booking.user.email,
+          subject: `Booking Cancelled & Refund Processed [${booking.bookingReference}]`,
+          html,
+        });
+      } catch (err) {
+        logger.error(`[Email Service] Failed to send cancellation email:`, err);
+      }
+    } else {
+      logger.info(`\n================== [DEV EMAIL SERVICE - CANCELLATION] ==================\n` +
+        `To: ${booking.user.email}\n` +
+        `Subject: Booking Cancelled & Refund Processed [${booking.bookingReference}]\n` +
+        `Refund: ₹${booking.refundAmount}\n` +
+        `========================================================================\n`);
+    }
   },
 
   async sendWaitlistOffer(offer: {
@@ -143,11 +174,42 @@ export const emailService = {
     seatCount: number;
     expiresAt: Date;
   }) {
-    logger.info(`\n================== [DEV EMAIL SERVICE - WAITLIST OFFER] ==================\n` +
-      `To: ${offer.userEmail}\n` +
-      `Subject: 🌟 Seats Available! Confirm your TicketEase Waitlist Offer for ${offer.eventTitle}\n` +
-      `Hi ${offer.userName}, ${offer.seatCount} seat(s) just opened up for ${offer.eventTitle}.\n` +
-      `You have until ${offer.expiresAt.toLocaleTimeString()} (5 minutes) to accept this offer.\n` +
-      `=========================================================================\n`);
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #d97706, #f59e0b); padding: 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: bold;">TicketEase</h1>
+          <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">🎉 Seats Are Available For You!</p>
+        </div>
+        <div style="padding: 24px;">
+          <h2 style="color: #1e293b; margin-top: 0; font-size: 20px;">Hi ${offer.userName},</h2>
+          <p style="color: #64748b; font-size: 15px; line-height: 1.5;">${offer.seatCount} seat(s) just opened up for <strong>${offer.eventTitle}</strong>!</p>
+          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <div style="font-size: 13px; color: #92400e;">
+              Please log in to your TicketEase account to accept this offer before it expires at <strong>${new Date(offer.expiresAt).toLocaleTimeString()}</strong>.
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const transporter = this.getTransporter();
+    if (transporter) {
+      try {
+        await transporter.sendMail({
+          from: `"TicketEase" <${config.mail.from}>`,
+          to: offer.userEmail,
+          subject: `🌟 Seats Available! Confirm your TicketEase Waitlist Offer for ${offer.eventTitle}`,
+          html,
+        });
+      } catch (err) {
+        logger.error(`[Email Service] Failed to send waitlist email:`, err);
+      }
+    } else {
+      logger.info(`\n================== [DEV EMAIL SERVICE - WAITLIST OFFER] ==================\n` +
+        `To: ${offer.userEmail}\n` +
+        `Subject: 🌟 Seats Available! Confirm your TicketEase Waitlist Offer for ${offer.eventTitle}\n` +
+        `Expires At: ${offer.expiresAt.toLocaleTimeString()}\n` +
+        `=========================================================================\n`);
+    }
   },
 };
